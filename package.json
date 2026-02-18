@@ -1,0 +1,20 @@
+{
+  "name": "newbank",
+  "version": "1.0.0",
+  "description": "Import DKB bank statement CSVs into Actual Budget",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@actual-app/api": "^26.2.0",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.9.3"
+  }
+}
