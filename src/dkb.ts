@@ -167,12 +167,7 @@ export function transformToActualTransactions(
     const counterpartIban = row.IBAN?.trim() ?? "";
     const isOwnAccount = counterpartIban !== "" && ownIbans.includes(counterpartIban);
     const payeeName = isOwnAccount ? counterpartIban.toUpperCase() : getOpposingName(row, amountFloat);
-
-
-    // Build a raw description for imported_payee (what the bank originally shows)
-    const importedPayee = counterpartIban 
-    ? `${payeeName} (${counterpartIban})` 
-    : payeeName;
+    const importedPayee = payeeName
 
     transactions.push({
       account: actualAccountId,
@@ -181,7 +176,7 @@ export function transformToActualTransactions(
       payee_name: payeeName.trim(),
       imported_payee: importedPayee.trim(),
       notes,
-      imported_id: generateImportedId(date, amount, payeeName, notes, row.Kundenreferenz?.trim() ?? ""),
+      imported_id: generateImportedId(date, amount, payeeName, notes),
       cleared: true,
     });
   }
