@@ -28,7 +28,7 @@ export interface ActualTransaction {
   account: string;
   date: string;
   amount: number;
-  // payee_name: string;
+  payee_name: string;
   imported_payee: string;
   notes: string;
   imported_id: string;
@@ -168,20 +168,20 @@ export function transformToActualTransactions(
     const isOwnAccount = counterpartIban !== "" && ownIbans.includes(counterpartIban);
     const payeeName = isOwnAccount ? counterpartIban.toUpperCase() : getOpposingName(row, amountFloat);
 
+
     // Build a raw description for imported_payee (what the bank originally shows)
-    // const importedPayee = [row["Zahlungsempfänger*in"], row["Zahlungspflichtige*r"]]
-    //   .filter(Boolean)
-    //   .join(" / ");
+    const importedPayee = counterpartIban 
+    ? `${payeeName} (${counterpartIban})` 
+    : payeeName;
 
     transactions.push({
       account: actualAccountId,
       date,
       amount,
-      imported_payee: payeeName.trim(),
-      // payee_name: payeeName.trim(),
-      // imported_payee: importedPayee.trim(),
+      payee_name: payeeName.trim(),
+      imported_payee: importedPayee.trim(),
       notes,
-      imported_id: generateImportedId(date, amount, payeeName, notes),
+      imported_id: generateImportedId(date, amount, payeeName, notes, row.Kundenreferenz?.trim() ?? ""),
       cleared: true,
     });
   }
