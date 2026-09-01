@@ -1,5 +1,15 @@
 import { loadConfig } from "./config.js";
-import { findDkbFile, parseDkbCsv, transformToActualTransactions } from "./dkb.js";
+import {
+  findDkbFile,
+  parseDkbCsv,
+  transformToActualTransactions,
+  type ActualTransaction,
+} from "./dkb.js";
+import {
+  findTradeRepublicFile,
+  parseTradeRepublicCsv,
+  transformTradeRepublicTransactions,
+} from "./traderepublic.js";
 import { init, connectToBudget, getActualAccountId, importToAccount, syncBudget, shutdown } from "./actual.js";
 
 async function main() {
@@ -21,19 +31,33 @@ async function main() {
       await connectToBudget(syncId);
 
       for (const account of accounts) {
-        console.log(`\n--- ${account.name} (${account.iban}) ---`);
+        const accountDetails = account.type === "dkb" ? ` (${account.iban})` : " (Trade Republic)";
+        console.log(`\n--- ${account.name}${accountDetails} ---`);
 
-        const filePath = findDkbFile(account.iban);
+        const filePath = account.type === "dkb"
+          ? findDkbFile(account.iban)
+          : findTradeRepublicFile();
         if (!filePath) {
-          console.log("  Keine CSV-Datei in ~/Downloads gefunden. Überspringe.");
+          const expectedFile = account.type === "dkb" ? "DKB-CSV-Datei" : "Transaktionsexport.csv";
+          console.log(`  Keine ${expectedFile} in ~/Downloads gefunden. Überspringe.`);
           continue;
         }
         console.log(`  Gefunden: ${filePath}`);
 
-        const rows = parseDkbCsv(filePath);
-        console.log(`  ${rows.length} Zeilen geparst.`);
+        let rowCount: number;
+        let transform: (accountId: string) => ActualTransaction[];
+        if (account.type === "dkb") {
+          const rows = parseDkbCsv(filePath);
+          rowCount = rows.length;
+          transform = (accountId) => transformToActualTransactions(rows, accountId, config.ownIbans);
+        } else {
+          const rows = parseTradeRepublicCsv(filePath);
+          rowCount = rows.length;
+          transform = (accountId) => transformTradeRepublicTransactions(rows, accountId, config.ownIbans);
+        }
+        console.log(`  ${rowCount} Zeilen geparst.`);
 
-        if (rows.length === 0) {
+        if (rowCount === 0) {
           console.log("  Keine Transaktionen. Überspringe.");
           continue;
         }
@@ -41,7 +65,7 @@ async function main() {
         const actualAccountId = await getActualAccountId(account.name);
         console.log(`  Actual-Konto-ID: ${actualAccountId}`);
 
-        const transactions = transformToActualTransactions(rows, actualAccountId, config.ownIbans);
+        const transactions = transform(actualAccountId);
         console.log(`  ${transactions.length} Transaktionen transformiert.`);
 
         const result = await importToAccount(actualAccountId, transactions);
